@@ -1,9 +1,7 @@
-// login elements
 const login = document.querySelector(".login")
 const loginForm = login.querySelector(".login__form")
 const loginInput = login.querySelector(".login__input")
 
-// chat elements
 const chat = document.querySelector(".chat")
 const chatForm = chat.querySelector(".chat__form")
 const chatInput = chat.querySelector(".chat__input")
@@ -83,7 +81,7 @@ const handleLogin = (event) => {
     login.style.display = "none"
     chat.style.display = "flex"
 
-    websocket = new WebSocket("wss://chat-backend-6fb9.onrender.com")
+    websocket = new WebSocket("https://chat-backend-6fb9.onrender.com")
     websocket.onmessage = processMessage
 }
 
