@@ -26,7 +26,19 @@
             </section>
 
             <form class="chat__form">
-                <input type="text" class="chat__input" placeholder="Digite uma mensagem" required />
+                <div class="chat__attachments-container">
+                    <label for="file-input" class="chat__button chat__attachment-label">
+                        <span class="material-symbols-outlined">image</span>
+                    </label>
+                    <input type="file" id="file-input" accept="image/*" style="display: none;" />
+
+                    <label for="document-input" class="chat__button chat__attachment-label">
+                        <span class="material-symbols-outlined">attach_file</span>
+                    </label>
+                    <input type="file" id="document-input" accept="*/*" style="display: none;" />
+                </div>
+
+                <input type="text" class="chat__input" placeholder="Digite uma mensagem" />
                 <button type="submit" class="chat__button">
                     <span class="material-symbols-outlined">send</span>
                 </button>
