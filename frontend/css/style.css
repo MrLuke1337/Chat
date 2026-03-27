@@ -119,10 +119,19 @@ body {
     background: none;
     color: #f2f2f2;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat__button:hover {
+    color: #fff;
+    transform: scale(1.1);
 }
 
 .chat__button > span {
     font-size: 1.8rem;
+    transition: all 0.2s ease-in-out;
 }
 
 .chat__messages > div {
@@ -154,4 +163,37 @@ body {
     margin-bottom: 15px;
     font-weight: 700;
     color: cadetblue;
+}
+
+.chat__attachments-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: 5px; 
+}
+
+.chat__attachment-label {
+    display: flex;
+    align-items: center;
+}
+
+.chat__messages img {
+    max-width: 100%;
+    border-radius: 10px;
+    margin-top: 5px;
+}
+
+.document-message {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    margin-top: 5px;
+    word-break: break-all;
+}
+
+.document-message:hover {
+    text-decoration: underline;
 }
