@@ -136,12 +136,15 @@ body {
 
 .chat__messages > div {
     padding: 10px;
-    width: 100%;
+    width: fit-content;
     max-width: 250px;
     font-size: 0.9rem;
     font-weight: 500;
     margin-bottom: 15px;
     line-height: 22px;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .message--self {
@@ -177,10 +180,9 @@ body {
     align-items: center;
 }
 
-/* Regra corrigida para centralizar a imagem */
 .chat__messages img {
-    display: block; /* Garante que a imagem se comporte como um bloco */
-    margin: 5px auto 0 auto; /* Centraliza horizontalmente e mantém a margem superior de 5px */
+    display: block;
+    margin: 5px auto 0 auto;
     max-width: 100%;
     border-radius: 10px;
 }
