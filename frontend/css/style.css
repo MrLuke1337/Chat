@@ -83,6 +83,39 @@ body {
     justify-content: space-between;
 }
 
+.chat__header {
+    background-color: #212121;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: flex-end;
+    border-bottom: 1px solid #333;
+}
+
+.user-photo-label {
+    position: relative;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.user-photo-label img {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid cadetblue;
+}
+
+.edit-icon {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    font-size: 14px !important;
+    background: #fff;
+    color: #000;
+    border-radius: 50%;
+    padding: 2px;
+}
+
 .chat__messages {
     flex-grow: 1;
     padding: 30px 30px 90px;
@@ -145,6 +178,7 @@ body {
     white-space: pre-wrap;
     overflow-wrap: break-word;
     word-break: break-word;
+    text-align: left;
 }
 
 .message--self {
@@ -161,17 +195,43 @@ body {
     align-self: flex-start;
 }
 
+.message--sender-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 8px;
+    width: fit-content;
+}
+
+.message__avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s;
+    display: block;
+}
+
+.message__avatar:hover {
+    transform: scale(1.1);
+}
+
 .message--sender {
     display: block;
-    margin-bottom: 15px;
-    font-weight: 700;
-    color: cadetblue;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-align: center;
+    width: 100%;
+    margin-bottom: 2px;
+    letter-spacing: 0.3px;
 }
 
 .chat__attachments-container {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0;
     margin-right: 5px; 
 }
 
@@ -180,9 +240,9 @@ body {
     align-items: center;
 }
 
-.chat__messages img {
+.chat__messages img, .chat__messages video {
     display: block;
-    margin: 5px auto 0 auto;
+    margin: 5px 0 0 0;
     max-width: 100%;
     border-radius: 10px;
 }
@@ -200,4 +260,40 @@ body {
 
 .document-message:hover {
     text-decoration: underline;
+}
+
+.modal {
+    display: none; 
+    position: fixed;
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); 
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 10px;
+    object-fit: contain;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: #f2f2f2;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: #fff;
 }
