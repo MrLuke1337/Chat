@@ -57,20 +57,20 @@ const closeModal = () => {
   modalImage.src = "";
 };
 
-// --- FUNÇÃO PARA CRIAR O PLAYER ESTILO WHATSAPP SEM AVATAR DUPLICADO ---
-// Removido o parâmetro userPic e a criação do avatar dentro do player
+// Adiciona clique na foto do cabeçalho para abrir o modal
+userPhotoPreview.onclick = () => openModal(userPhotoPreview.src);
+
 const createAudioPlayer = (src) => {
   const container = document.createElement("div");
   container.classList.add("wa-audio-container");
 
   const playBtn = document.createElement("button");
-  playBtn.innerHTML =
-    '<span class="material-symbols-outlined">play_arrow</span>';
+  playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
   playBtn.classList.add("wa-play-btn");
 
   const audio = document.createElement("audio");
   audio.src = src;
-  audio.volume = 1.0; // Garante volume máximo inicial
+  audio.volume = 1.0;
 
   const progressContainer = document.createElement("div");
   progressContainer.classList.add("wa-progress-container");
@@ -82,29 +82,22 @@ const createAudioPlayer = (src) => {
   speedBtn.innerText = "1x";
   speedBtn.classList.add("wa-speed-btn");
 
-  // --- O AVATAR FOI REMOVIDO DAQUI ---
-
-  // Lógica de Velocidade (1x -> 1.5x -> 2x)
   let currentSpeed = 1;
   speedBtn.onclick = () => {
     if (currentSpeed === 1) currentSpeed = 1.5;
     else if (currentSpeed === 1.5) currentSpeed = 2;
     else currentSpeed = 1;
-
     audio.playbackRate = currentSpeed;
     speedBtn.innerText = `${currentSpeed}x`;
   };
 
-  // Play/Pause
   playBtn.onclick = () => {
     if (audio.paused) {
       audio.play();
-      playBtn.innerHTML =
-        '<span class="material-symbols-outlined">pause</span>';
+      playBtn.innerHTML = '<span class="material-symbols-outlined">pause</span>';
     } else {
       audio.pause();
-      playBtn.innerHTML =
-        '<span class="material-symbols-outlined">play_arrow</span>';
+      playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
     }
   };
 
@@ -114,15 +107,13 @@ const createAudioPlayer = (src) => {
   };
 
   audio.onended = () => {
-    playBtn.innerHTML =
-      '<span class="material-symbols-outlined">play_arrow</span>';
+    playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
     progressBar.style.width = "0%";
   };
 
   container.appendChild(playBtn);
   container.appendChild(progressContainer);
   container.appendChild(speedBtn);
-  // --- container.appendChild(avatar); REMOVIDO ---
   container.appendChild(audio);
 
   return container;
@@ -131,9 +122,7 @@ const createAudioPlayer = (src) => {
 const createMessageSelfElement = (content, type, filename) => {
   const div = document.createElement("div");
   div.classList.add("message--self");
-  if (type === "audio")
-    // Chamada simplificada sem o avatar do usuário
-    div.appendChild(createAudioPlayer(content));
+  if (type === "audio") div.appendChild(createAudioPlayer(content));
   else if (type === "image") {
     const img = document.createElement("img");
     img.src = content;
@@ -155,33 +144,29 @@ const createMessageSelfElement = (content, type, filename) => {
   return div;
 };
 
-const createMessageOtherElement = (
-  content,
-  sender,
-  senderColor,
-  type,
-  filename,
-  userProfilePic,
-) => {
+const createMessageOtherElement = (content, sender, senderColor, type, filename, userProfilePic) => {
   const div = document.createElement("div");
   div.classList.add("message--other");
   const container = document.createElement("div");
   container.classList.add("message--sender-container");
+  
   const span = document.createElement("span");
   span.classList.add("message--sender");
   span.style.color = senderColor;
   span.innerHTML = sender;
+  
   const avatarHeader = document.createElement("img");
   avatarHeader.classList.add("message__avatar");
-  avatarHeader.src =
-    userProfilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+  avatarHeader.src = userProfilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+  
+  // RECOLOCADO: Evento de clique para abrir a foto de quem enviou
+  avatarHeader.onclick = () => openModal(avatarHeader.src);
+
   container.appendChild(span);
   container.appendChild(avatarHeader);
-  div.appendChild(container); // Avatar do remetente permanece aqui
+  div.appendChild(container);
 
-  if (type === "audio")
-    // Chamada simplificada sem o avatar duplicado
-    div.appendChild(createAudioPlayer(content));
+  if (type === "audio") div.appendChild(createAudioPlayer(content));
   else if (type === "image") {
     const img = document.createElement("img");
     img.src = content;
@@ -207,26 +192,8 @@ const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
 const scrollScreen = () => (chatMessages.scrollTop = chatMessages.scrollHeight);
 
 const processMessage = ({ data }) => {
-  const {
-    userId,
-    userName,
-    userColor,
-    content,
-    type,
-    filename,
-    userProfilePic,
-  } = JSON.parse(data);
-  const message =
-    userId == user.id
-      ? createMessageSelfElement(content, type, filename)
-      : createMessageOtherElement(
-          content,
-          userName,
-          userColor,
-          type,
-          filename,
-          userProfilePic,
-        );
+  const { userId, userName, userColor, content, type, filename, userProfilePic } = JSON.parse(data);
+  const message = userId == user.id ? createMessageSelfElement(content, type, filename) : createMessageOtherElement(content, userName, userColor, type, filename, userProfilePic);
   chatMessages.appendChild(message);
   scrollScreen();
 };
@@ -245,16 +212,7 @@ const handleLogin = (event) => {
 const sendMessage = (event) => {
   event.preventDefault();
   if (chatInput.value.trim() !== "") {
-    websocket.send(
-      JSON.stringify({
-        userId: user.id,
-        userName: user.name,
-        userColor: user.color,
-        userProfilePic: user.profilePic,
-        content: chatInput.value,
-        type: "text",
-      }),
-    );
+    websocket.send(JSON.stringify({ userId: user.id, userName: user.name, userColor: user.color, userProfilePic: user.profilePic, content: chatInput.value, type: "text" }));
     chatInput.value = "";
   }
 };
@@ -268,30 +226,17 @@ micButton.addEventListener("click", async (event) => {
       audioChunks = [];
       mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, {
-          type: mediaRecorder.mimeType,
-        });
+        const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
         const reader = new FileReader();
         reader.onload = () => {
-          websocket.send(
-            JSON.stringify({
-              userId: user.id,
-              userName: user.name,
-              userColor: user.color,
-              userProfilePic: user.profilePic,
-              content: reader.result,
-              type: "audio",
-            }),
-          );
+          websocket.send(JSON.stringify({ userId: user.id, userName: user.name, userColor: user.color, userProfilePic: user.profilePic, content: reader.result, type: "audio" }));
         };
         reader.readAsDataURL(audioBlob);
         stream.getTracks().forEach((t) => t.stop());
       };
       mediaRecorder.start();
       micButton.classList.add("recording");
-    } catch (err) {
-      alert("Microfone não disponível");
-    }
+    } catch (err) { alert("Microfone não disponível"); }
   } else {
     mediaRecorder.stop();
     micButton.classList.remove("recording");
@@ -311,21 +256,7 @@ documentInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   const reader = new FileReader();
   reader.onload = () => {
-    websocket.send(
-      JSON.stringify({
-        userId: user.id,
-        userName: user.name,
-        userColor: user.color,
-        userProfilePic: user.profilePic,
-        content: reader.result,
-        type: file.type.startsWith("image/")
-          ? "image"
-          : file.type.startsWith("video/")
-            ? "video"
-            : "document",
-        filename: file.name,
-      }),
-    );
+    websocket.send(JSON.stringify({ userId: user.id, userName: user.name, userColor: user.color, userProfilePic: user.profilePic, content: reader.result, type: file.type.startsWith("image/") ? "image" : (file.type.startsWith("video/") ? "video" : "document"), filename: file.name }));
   };
   reader.readAsDataURL(file);
 });
