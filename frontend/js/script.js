@@ -37,6 +37,7 @@ let websocket;
 let mediaRecorder;
 let audioChunks = [];
 
+// --- FUNÇÃO MODAL ---
 const openModal = (src, isVideo = false) => {
   if (isVideo) {
     modalVideo.src = src;
@@ -57,15 +58,22 @@ const closeModal = () => {
   modalImage.src = "";
 };
 
-// Adiciona clique na foto do cabeçalho para abrir o modal
-userPhotoPreview.onclick = () => openModal(userPhotoPreview.src);
+// --- CORREÇÃO DO CLIQUE NO CABEÇALHO ---
+// Impedimos que o clique na imagem abra o seletor de arquivos, deixando isso para o ícone de edit
+userPhotoPreview.addEventListener("click", (e) => {
+  e.preventDefault(); // Evita abrir o input de arquivo
+  e.stopPropagation(); // Evita que o clique suba para o label
+  openModal(userPhotoPreview.src);
+});
 
+// --- PLAYER DE ÁUDIO (ESTILO WHATSAPP) ---
 const createAudioPlayer = (src) => {
   const container = document.createElement("div");
   container.classList.add("wa-audio-container");
 
   const playBtn = document.createElement("button");
-  playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
+  playBtn.innerHTML =
+    '<span class="material-symbols-outlined">play_arrow</span>';
   playBtn.classList.add("wa-play-btn");
 
   const audio = document.createElement("audio");
@@ -84,9 +92,7 @@ const createAudioPlayer = (src) => {
 
   let currentSpeed = 1;
   speedBtn.onclick = () => {
-    if (currentSpeed === 1) currentSpeed = 1.5;
-    else if (currentSpeed === 1.5) currentSpeed = 2;
-    else currentSpeed = 1;
+    currentSpeed = currentSpeed === 1 ? 1.5 : currentSpeed === 1.5 ? 2 : 1;
     audio.playbackRate = currentSpeed;
     speedBtn.innerText = `${currentSpeed}x`;
   };
@@ -94,20 +100,23 @@ const createAudioPlayer = (src) => {
   playBtn.onclick = () => {
     if (audio.paused) {
       audio.play();
-      playBtn.innerHTML = '<span class="material-symbols-outlined">pause</span>';
+      playBtn.innerHTML =
+        '<span class="material-symbols-outlined">pause</span>';
     } else {
       audio.pause();
-      playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
+      playBtn.innerHTML =
+        '<span class="material-symbols-outlined">play_arrow</span>';
     }
   };
 
   audio.ontimeupdate = () => {
     const percent = (audio.currentTime / audio.duration) * 100;
-    progressBar.style.width = `${percent}%`;
+    progressBar.style.width = `${percent || 0}%`;
   };
 
   audio.onended = () => {
-    playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
+    playBtn.innerHTML =
+      '<span class="material-symbols-outlined">play_arrow</span>';
     progressBar.style.width = "0%";
   };
 
@@ -119,6 +128,7 @@ const createAudioPlayer = (src) => {
   return container;
 };
 
+// --- MENSAGENS PRÓPRIAS ---
 const createMessageSelfElement = (content, type, filename) => {
   const div = document.createElement("div");
   div.classList.add("message--self");
@@ -144,22 +154,33 @@ const createMessageSelfElement = (content, type, filename) => {
   return div;
 };
 
-const createMessageOtherElement = (content, sender, senderColor, type, filename, userProfilePic) => {
+// --- MENSAGENS DE OUTROS (COM FOTO CLICKÁVEL) ---
+const createMessageOtherElement = (
+  content,
+  sender,
+  senderColor,
+  type,
+  filename,
+  userProfilePic,
+) => {
   const div = document.createElement("div");
   div.classList.add("message--other");
+
   const container = document.createElement("div");
   container.classList.add("message--sender-container");
-  
+
   const span = document.createElement("span");
   span.classList.add("message--sender");
   span.style.color = senderColor;
   span.innerHTML = sender;
-  
+
   const avatarHeader = document.createElement("img");
   avatarHeader.classList.add("message__avatar");
-  avatarHeader.src = userProfilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-  
-  // RECOLOCADO: Evento de clique para abrir a foto de quem enviou
+  avatarHeader.src =
+    userProfilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+  // Adiciona o clique para abrir a foto do outro usuário
+  avatarHeader.style.cursor = "pointer";
   avatarHeader.onclick = () => openModal(avatarHeader.src);
 
   container.appendChild(span);
@@ -185,15 +206,35 @@ const createMessageOtherElement = (content, sender, senderColor, type, filename,
     link.classList.add("document-message");
     div.appendChild(link);
   } else div.innerHTML += content;
+
   return div;
 };
 
+// --- LÓGICA DE LOGIN E ENVIO ---
 const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
 const scrollScreen = () => (chatMessages.scrollTop = chatMessages.scrollHeight);
 
 const processMessage = ({ data }) => {
-  const { userId, userName, userColor, content, type, filename, userProfilePic } = JSON.parse(data);
-  const message = userId == user.id ? createMessageSelfElement(content, type, filename) : createMessageOtherElement(content, userName, userColor, type, filename, userProfilePic);
+  const {
+    userId,
+    userName,
+    userColor,
+    content,
+    type,
+    filename,
+    userProfilePic,
+  } = JSON.parse(data);
+  const message =
+    userId == user.id
+      ? createMessageSelfElement(content, type, filename)
+      : createMessageOtherElement(
+          content,
+          userName,
+          userColor,
+          type,
+          filename,
+          userProfilePic,
+        );
   chatMessages.appendChild(message);
   scrollScreen();
 };
@@ -212,11 +253,21 @@ const handleLogin = (event) => {
 const sendMessage = (event) => {
   event.preventDefault();
   if (chatInput.value.trim() !== "") {
-    websocket.send(JSON.stringify({ userId: user.id, userName: user.name, userColor: user.color, userProfilePic: user.profilePic, content: chatInput.value, type: "text" }));
+    websocket.send(
+      JSON.stringify({
+        userId: user.id,
+        userName: user.name,
+        userColor: user.color,
+        userProfilePic: user.profilePic,
+        content: chatInput.value,
+        type: "text",
+      }),
+    );
     chatInput.value = "";
   }
 };
 
+// --- GRAVAÇÃO ---
 micButton.addEventListener("click", async (event) => {
   event.preventDefault();
   if (!mediaRecorder || mediaRecorder.state === "inactive") {
@@ -226,41 +277,76 @@ micButton.addEventListener("click", async (event) => {
       audioChunks = [];
       mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+        const audioBlob = new Blob(audioChunks, {
+          type: mediaRecorder.mimeType,
+        });
         const reader = new FileReader();
         reader.onload = () => {
-          websocket.send(JSON.stringify({ userId: user.id, userName: user.name, userColor: user.color, userProfilePic: user.profilePic, content: reader.result, type: "audio" }));
+          websocket.send(
+            JSON.stringify({
+              userId: user.id,
+              userName: user.name,
+              userColor: user.color,
+              userProfilePic: user.profilePic,
+              content: reader.result,
+              type: "audio",
+            }),
+          );
         };
         reader.readAsDataURL(audioBlob);
         stream.getTracks().forEach((t) => t.stop());
       };
       mediaRecorder.start();
       micButton.classList.add("recording");
-    } catch (err) { alert("Microfone não disponível"); }
+    } catch (err) {
+      alert("Microfone não disponível");
+    }
   } else {
     mediaRecorder.stop();
     micButton.classList.remove("recording");
   }
 });
 
+// --- UPLOAD DE FOTO DE PERFIL ---
 userPhotoInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
     user.profilePic = reader.result;
     userPhotoPreview.src = reader.result;
   };
-  reader.readAsDataURL(e.target.files[0]);
+  reader.readAsDataURL(file);
 });
 
+// --- ANEXOS ---
 documentInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
+  if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    websocket.send(JSON.stringify({ userId: user.id, userName: user.name, userColor: user.color, userProfilePic: user.profilePic, content: reader.result, type: file.type.startsWith("image/") ? "image" : (file.type.startsWith("video/") ? "video" : "document"), filename: file.name }));
+    websocket.send(
+      JSON.stringify({
+        userId: user.id,
+        userName: user.name,
+        userColor: user.color,
+        userProfilePic: user.profilePic,
+        content: reader.result,
+        type: file.type.startsWith("image/")
+          ? "image"
+          : file.type.startsWith("video/")
+            ? "video"
+            : "document",
+        filename: file.name,
+      }),
+    );
   };
   reader.readAsDataURL(file);
 });
 
 modalClose.onclick = closeModal;
+imageModal.onclick = (e) => {
+  if (e.target === imageModal) closeModal();
+};
 loginForm.addEventListener("submit", handleLogin);
 chatForm.addEventListener("submit", sendMessage);
