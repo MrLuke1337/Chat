@@ -29,8 +29,6 @@ const user = {
 let websocket;
 let mediaRecorder;
 let audioChunks = [];
-
-// Trava para evitar eco/duplicados na tela
 const processedMessages = new Set();
 
 // --- MODAL ---
@@ -55,19 +53,7 @@ const closeModal = () => {
   modalImage.src = "";
 };
 
-// --- LOGICA DA FOTO DE PERFIL ---
-userPhotoPreview.addEventListener("click", (e) => {
-  e.preventDefault(); 
-  openModal(userPhotoPreview.src);
-});
-
-const editIcon = document.querySelector(".edit-icon");
-if (editIcon) {
-  editIcon.addEventListener("click", (e) => {
-    e.preventDefault();
-    userPhotoInput.click();
-  });
-}
+userPhotoPreview.addEventListener("click", () => openModal(userPhotoPreview.src));
 
 userPhotoInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
@@ -76,7 +62,6 @@ userPhotoInput.addEventListener("change", (e) => {
   reader.onload = () => {
     user.profilePic = reader.result;
     userPhotoPreview.src = reader.result;
-    closeModal();
   };
   reader.readAsDataURL(file);
 });
@@ -87,7 +72,7 @@ const createAudioPlayer = (src) => {
   container.classList.add("wa-audio-container");
 
   const playBtn = document.createElement("button");
-  playBtn.type = "button"; // Garante que não submeta formulário
+  playBtn.type = "button";
   playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
   playBtn.classList.add("wa-play-btn");
 
@@ -140,21 +125,24 @@ const createAudioPlayer = (src) => {
   return container;
 };
 
-// --- CRIAÇÃO DE MENSAGENS CENTRALIZADAS ---
+// --- MENSAGENS ---
 const createMessageSelfElement = (content, type, filename) => {
   const div = document.createElement("div");
   div.classList.add("message--self");
   
-  if (type === "audio") {
-    div.appendChild(createAudioPlayer(content));
-  } else if (type === "image") {
+  if (type === "audio") div.appendChild(createAudioPlayer(content));
+  else if (type === "image") {
     const img = document.createElement("img");
     img.src = content;
+    img.style.maxWidth = "100%";
+    img.style.borderRadius = "8px";
     img.onclick = () => openModal(img.src);
     div.appendChild(img);
   } else if (type === "video") {
     const video = document.createElement("video");
     video.src = content;
+    video.style.maxWidth = "100%";
+    video.style.borderRadius = "8px";
     video.onclick = () => openModal(video.src, true);
     div.appendChild(video);
   } else if (type === "document") {
@@ -162,7 +150,8 @@ const createMessageSelfElement = (content, type, filename) => {
     link.href = content;
     link.download = filename;
     link.innerHTML = `<span class="material-symbols-outlined">description</span> ${filename}`;
-    link.classList.add("document-message");
+    link.style.color = "inherit";
+    link.style.textDecoration = "none";
     div.appendChild(link);
   } else {
     const txt = document.createElement("span");
@@ -188,24 +177,25 @@ const createMessageOtherElement = (content, sender, senderColor, type, filename,
   const avatar = document.createElement("img");
   avatar.classList.add("message__avatar");
   avatar.src = userProfilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-  
-  // ZOOM NA FOTO DA MENSAGEM RECEBIDA
   avatar.onclick = () => openModal(avatar.src);
 
   container.appendChild(span);
   container.appendChild(avatar);
   div.appendChild(container);
 
-  if (type === "audio") {
-    div.appendChild(createAudioPlayer(content));
-  } else if (type === "image") {
+  if (type === "audio") div.appendChild(createAudioPlayer(content));
+  else if (type === "image") {
     const img = document.createElement("img");
     img.src = content;
+    img.style.maxWidth = "100%";
+    img.style.borderRadius = "8px";
     img.onclick = () => openModal(img.src);
     div.appendChild(img);
   } else if (type === "video") {
     const video = document.createElement("video");
     video.src = content;
+    video.style.maxWidth = "100%";
+    video.style.borderRadius = "8px";
     video.onclick = () => openModal(video.src, true);
     div.appendChild(video);
   } else if (type === "document") {
@@ -213,10 +203,10 @@ const createMessageOtherElement = (content, sender, senderColor, type, filename,
     link.href = content;
     link.download = filename;
     link.innerHTML = `<span class="material-symbols-outlined">description</span> ${filename}`;
-    link.classList.add("document-message");
+    link.style.color = "inherit";
+    link.style.textDecoration = "none";
     div.appendChild(link);
   } else {
-    // Para texto, criamos um elemento próprio para facilitar a centralização pelo CSS
     const txt = document.createElement("span");
     txt.innerText = content;
     div.appendChild(txt);
@@ -225,7 +215,6 @@ const createMessageOtherElement = (content, sender, senderColor, type, filename,
   return div;
 };
 
-// --- LOGICA DO CHAT ---
 const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
 const scrollScreen = () => (chatMessages.scrollTop = chatMessages.scrollHeight);
 
@@ -233,11 +222,8 @@ const processMessage = ({ data }) => {
   const parsedData = JSON.parse(data);
   const { messageId, userId, userName, userColor, content, type, filename, userProfilePic } = parsedData;
 
-  // Evita duplicar mensagens locais
-  if (messageId) {
-    if (processedMessages.has(messageId)) return;
-    processedMessages.add(messageId);
-  }
+  if (messageId && processedMessages.has(messageId)) return;
+  if (messageId) processedMessages.add(messageId);
 
   const message = userId == user.id
       ? createMessageSelfElement(content, type, filename)
@@ -261,9 +247,9 @@ const handleLogin = (event) => {
 const sendMessage = (event) => {
   event.preventDefault();
   if (chatInput.value.trim() !== "") {
-    const messageId = crypto.randomUUID();
+    const id = crypto.randomUUID();
     websocket.send(JSON.stringify({
-        messageId: messageId,
+        messageId: id,
         userId: user.id,
         userName: user.name,
         userColor: user.color,
@@ -290,7 +276,7 @@ documentInput.addEventListener("change", (e) => {
         type: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "document",
         filename: file.name,
     }));
-    e.target.value = ""; 
+    e.target.value = "";
   };
   reader.readAsDataURL(file);
 });
