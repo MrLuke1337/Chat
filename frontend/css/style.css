@@ -312,7 +312,7 @@ body {
 
 .audio-message {
     display: block;
-    margin-top: 8px;
-    max-width: 220px;
-    height: 35px;
+    width: 250px;
+    height: 45px;
+    margin-top: 10px;
 }
