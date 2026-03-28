@@ -10,7 +10,6 @@
 <body>
     
     <section class="container">
-
         <section class="login">
             <h2>Login</h2>
             <form class="login__form">
@@ -22,11 +21,11 @@
         <section class="chat">
             <header class="chat__header">
                 <div class="chat__user-info">
+                    <input type="file" id="user-photo-input" accept="image/*" style="display: none;">
                     <label for="user-photo-input" class="user-photo-label">
                         <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" id="user-photo-preview" alt="Perfil">
                         <span class="material-symbols-outlined edit-icon">edit</span>
                     </label>
-                    <input type="file" id="user-photo-input" accept="image/*" style="display: none;">
                 </div>
             </header>
 
@@ -51,7 +50,6 @@
                 </button>
             </form>
         </section>
-
     </section>
 
     <div id="image-modal" class="modal">
