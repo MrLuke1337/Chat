@@ -310,9 +310,102 @@ body {
     100% { transform: scale(1); }
 }
 
+/* Container do áudio */
 .audio-message {
-    display: block;
-    width: 250px;
-    height: 45px;
-    margin-top: 10px;
+    width: 100%;
+    min-width: 220px;
+    max-width: 280px;
+    height: 40px;
+    margin-top: 5px;
+    /* Remove o fundo padrão para usar o do balão */
+    filter: invert(0.1); /* Ajusta levemente o contraste dos controles */
+}
+
+/* Ajuste no balão de quem envia (Verde WhatsApp) */
+.message--self {
+    background-color: #005c4b !important; /* Verde escuro do WA */
+    color: #e9edef !important;
+    border-radius: 10px 10px 0 10px;
+    padding: 8px 12px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+/* Ajuste no balão de quem recebe (Cinza WA) */
+.message--other {
+    background-color: #202c33 !important; /* Cinza escuro do WA */
+    color: #e9edef !important;
+    border-radius: 0 10px 10px 10px;
+    padding: 8px 12px !important;
+}
+
+/* Ajuste dos ícones de anexo e microfone para cores do WA */
+.chat__button {
+    color: #8696a0 !important;
+}
+
+#mic-button.recording {
+    color: #f15c6d !important; /* Cor de gravação */
+}
+
+.wa-audio-container {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    padding: 8px;
+    gap: 12px;
+    width: 280px;
+}
+
+.wa-play-btn {
+    background: none;
+    border: none;
+    color: #8696a0;
+    cursor: pointer;
+    transform: scale(1.2);
+}
+
+.wa-play-btn :hover {
+    color: #8696a0;
+    cursor: pointer;
+    transform: scale(1.2);
+}
+
+.wa-progress-container {
+    flex-grow: 1;
+    height: 4px;
+    background: rgba(134, 150, 160, 0.2);
+    border-radius: 2px;
+}
+
+.wa-progress-bar {
+    height: 100%;
+    background: #00a884;
+    width: 0%;
+}
+
+.wa-speed-btn {
+    background: #374248;
+    color: #e9edef;
+    border: none;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    min-width: 35px;
+}
+
+.wa-speed-btn :hover {
+    background: #374248;
+    color: #e9edef;
+    transform: scale(1.2);
+}
+
+.wa-audio-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
 }
