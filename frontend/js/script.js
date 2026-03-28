@@ -17,14 +17,7 @@ const modalImage = document.getElementById("modal-image");
 const modalVideo = document.getElementById("modal-video");
 const modalClose = document.querySelector(".modal-close");
 
-const colors = [
-  "cadetblue",
-  "darkgoldenrod",
-  "cornflowerblue",
-  "darkkhaki",
-  "hotpink",
-  "gold",
-];
+const colors = ["cadetblue", "darkgoldenrod", "cornflowerblue", "darkkhaki", "hotpink", "gold"];
 
 const user = {
   id: "",
@@ -37,8 +30,9 @@ let websocket;
 let mediaRecorder;
 let audioChunks = [];
 
-// --- FUNÇÃO MODAL ---
+// --- MODAL ---
 const openModal = (src, isVideo = false) => {
+  if (!src) return;
   if (isVideo) {
     modalVideo.src = src;
     modalVideo.style.display = "block";
@@ -58,27 +52,19 @@ const closeModal = () => {
   modalImage.src = "";
 };
 
-// --- CORREÇÃO DO CLIQUE NO CABEÇALHO ---
-// Impedimos que o clique na imagem abra o seletor de arquivos, deixando isso para o ícone de edit
-userPhotoPreview.addEventListener("click", (e) => {
-  e.preventDefault(); // Evita abrir o input de arquivo
-  e.stopPropagation(); // Evita que o clique suba para o label
-  openModal(userPhotoPreview.src);
-});
+userPhotoPreview.addEventListener("click", () => openModal(userPhotoPreview.src));
 
-// --- PLAYER DE ÁUDIO (ESTILO WHATSAPP) ---
+// --- PLAYER DE ÁUDIO (SEM AVATAR INTERNO) ---
 const createAudioPlayer = (src) => {
   const container = document.createElement("div");
   container.classList.add("wa-audio-container");
 
   const playBtn = document.createElement("button");
-  playBtn.innerHTML =
-    '<span class="material-symbols-outlined">play_arrow</span>';
+  playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
   playBtn.classList.add("wa-play-btn");
 
   const audio = document.createElement("audio");
   audio.src = src;
-  audio.volume = 1.0;
 
   const progressContainer = document.createElement("div");
   progressContainer.classList.add("wa-progress-container");
@@ -100,12 +86,10 @@ const createAudioPlayer = (src) => {
   playBtn.onclick = () => {
     if (audio.paused) {
       audio.play();
-      playBtn.innerHTML =
-        '<span class="material-symbols-outlined">pause</span>';
+      playBtn.innerHTML = '<span class="material-symbols-outlined">pause</span>';
     } else {
       audio.pause();
-      playBtn.innerHTML =
-        '<span class="material-symbols-outlined">play_arrow</span>';
+      playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
     }
   };
 
@@ -115,8 +99,7 @@ const createAudioPlayer = (src) => {
   };
 
   audio.onended = () => {
-    playBtn.innerHTML =
-      '<span class="material-symbols-outlined">play_arrow</span>';
+    playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
     progressBar.style.width = "0%";
   };
 
@@ -128,10 +111,11 @@ const createAudioPlayer = (src) => {
   return container;
 };
 
-// --- MENSAGENS PRÓPRIAS ---
+// --- MENSAGENS ---
 const createMessageSelfElement = (content, type, filename) => {
   const div = document.createElement("div");
   div.classList.add("message--self");
+  
   if (type === "audio") div.appendChild(createAudioPlayer(content));
   else if (type === "image") {
     const img = document.createElement("img");
@@ -151,18 +135,11 @@ const createMessageSelfElement = (content, type, filename) => {
     link.classList.add("document-message");
     div.appendChild(link);
   } else div.innerHTML = content;
+  
   return div;
 };
 
-// --- MENSAGENS DE OUTROS (COM FOTO CLICKÁVEL) ---
-const createMessageOtherElement = (
-  content,
-  sender,
-  senderColor,
-  type,
-  filename,
-  userProfilePic,
-) => {
+const createMessageOtherElement = (content, sender, senderColor, type, filename, userProfilePic) => {
   const div = document.createElement("div");
   div.classList.add("message--other");
 
@@ -176,11 +153,7 @@ const createMessageOtherElement = (
 
   const avatarHeader = document.createElement("img");
   avatarHeader.classList.add("message__avatar");
-  avatarHeader.src =
-    userProfilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
-  // Adiciona o clique para abrir a foto do outro usuário
-  avatarHeader.style.cursor = "pointer";
+  avatarHeader.src = userProfilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
   avatarHeader.onclick = () => openModal(avatarHeader.src);
 
   container.appendChild(span);
@@ -210,31 +183,15 @@ const createMessageOtherElement = (
   return div;
 };
 
-// --- LÓGICA DE LOGIN E ENVIO ---
 const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
 const scrollScreen = () => (chatMessages.scrollTop = chatMessages.scrollHeight);
 
 const processMessage = ({ data }) => {
-  const {
-    userId,
-    userName,
-    userColor,
-    content,
-    type,
-    filename,
-    userProfilePic,
-  } = JSON.parse(data);
-  const message =
-    userId == user.id
+  const { userId, userName, userColor, content, type, filename, userProfilePic } = JSON.parse(data);
+  const message = userId == user.id
       ? createMessageSelfElement(content, type, filename)
-      : createMessageOtherElement(
-          content,
-          userName,
-          userColor,
-          type,
-          filename,
-          userProfilePic,
-        );
+      : createMessageOtherElement(content, userName, userColor, type, filename, userProfilePic);
+  
   chatMessages.appendChild(message);
   scrollScreen();
 };
@@ -253,61 +210,18 @@ const handleLogin = (event) => {
 const sendMessage = (event) => {
   event.preventDefault();
   if (chatInput.value.trim() !== "") {
-    websocket.send(
-      JSON.stringify({
+    websocket.send(JSON.stringify({
         userId: user.id,
         userName: user.name,
         userColor: user.color,
         userProfilePic: user.profilePic,
         content: chatInput.value,
         type: "text",
-      }),
-    );
+    }));
     chatInput.value = "";
   }
 };
 
-// --- GRAVAÇÃO ---
-micButton.addEventListener("click", async (event) => {
-  event.preventDefault();
-  if (!mediaRecorder || mediaRecorder.state === "inactive") {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-      mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, {
-          type: mediaRecorder.mimeType,
-        });
-        const reader = new FileReader();
-        reader.onload = () => {
-          websocket.send(
-            JSON.stringify({
-              userId: user.id,
-              userName: user.name,
-              userColor: user.color,
-              userProfilePic: user.profilePic,
-              content: reader.result,
-              type: "audio",
-            }),
-          );
-        };
-        reader.readAsDataURL(audioBlob);
-        stream.getTracks().forEach((t) => t.stop());
-      };
-      mediaRecorder.start();
-      micButton.classList.add("recording");
-    } catch (err) {
-      alert("Microfone não disponível");
-    }
-  } else {
-    mediaRecorder.stop();
-    micButton.classList.remove("recording");
-  }
-});
-
-// --- UPLOAD DE FOTO DE PERFIL ---
 userPhotoInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -319,34 +233,58 @@ userPhotoInput.addEventListener("change", (e) => {
   reader.readAsDataURL(file);
 });
 
-// --- ANEXOS ---
 documentInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    websocket.send(
-      JSON.stringify({
+    websocket.send(JSON.stringify({
         userId: user.id,
         userName: user.name,
         userColor: user.color,
         userProfilePic: user.profilePic,
         content: reader.result,
-        type: file.type.startsWith("image/")
-          ? "image"
-          : file.type.startsWith("video/")
-            ? "video"
-            : "document",
+        type: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "document",
         filename: file.name,
-      }),
-    );
+    }));
   };
   reader.readAsDataURL(file);
 });
 
+micButton.addEventListener("click", async (event) => {
+  event.preventDefault();
+  if (!mediaRecorder || mediaRecorder.state === "inactive") {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+      mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+        const reader = new FileReader();
+        reader.onload = () => {
+          websocket.send(JSON.stringify({
+              userId: user.id,
+              userName: user.name,
+              userColor: user.color,
+              userProfilePic: user.profilePic,
+              content: reader.result,
+              type: "audio",
+          }));
+        };
+        reader.readAsDataURL(audioBlob);
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      mediaRecorder.start();
+      micButton.classList.add("recording");
+    } catch (err) { alert("Microfone não disponível"); }
+  } else {
+    mediaRecorder.stop();
+    micButton.classList.remove("recording");
+  }
+});
+
 modalClose.onclick = closeModal;
-imageModal.onclick = (e) => {
-  if (e.target === imageModal) closeModal();
-};
+imageModal.onclick = (e) => { if (e.target === imageModal) closeModal(); };
 loginForm.addEventListener("submit", handleLogin);
 chatForm.addEventListener("submit", sendMessage);
