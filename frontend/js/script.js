@@ -206,7 +206,7 @@ micButton.addEventListener("click", async (event) => {
             }
 
             mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
+                const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
                 const reader = new FileReader()
                 reader.onload = () => {
                     const message = {
