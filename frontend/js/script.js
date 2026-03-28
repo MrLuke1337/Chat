@@ -30,6 +30,9 @@ let websocket;
 let mediaRecorder;
 let audioChunks = [];
 
+// Trava para evitar eco/duplicados na tela
+const processedMessages = new Set();
+
 // --- MODAL ---
 const openModal = (src, isVideo = false) => {
   if (!src) return;
@@ -52,14 +55,39 @@ const closeModal = () => {
   modalImage.src = "";
 };
 
-userPhotoPreview.addEventListener("click", () => openModal(userPhotoPreview.src));
+// --- LOGICA DA FOTO DE PERFIL ---
+userPhotoPreview.addEventListener("click", (e) => {
+  e.preventDefault(); 
+  openModal(userPhotoPreview.src);
+});
 
-// --- PLAYER DE ÁUDIO (SEM AVATAR INTERNO) ---
+const editIcon = document.querySelector(".edit-icon");
+if (editIcon) {
+  editIcon.addEventListener("click", (e) => {
+    e.preventDefault();
+    userPhotoInput.click();
+  });
+}
+
+userPhotoInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    user.profilePic = reader.result;
+    userPhotoPreview.src = reader.result;
+    closeModal();
+  };
+  reader.readAsDataURL(file);
+});
+
+// --- PLAYER DE ÁUDIO ---
 const createAudioPlayer = (src) => {
   const container = document.createElement("div");
   container.classList.add("wa-audio-container");
 
   const playBtn = document.createElement("button");
+  playBtn.type = "button"; // Garante que não submeta formulário
   playBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
   playBtn.classList.add("wa-play-btn");
 
@@ -73,6 +101,7 @@ const createAudioPlayer = (src) => {
   progressContainer.appendChild(progressBar);
 
   const speedBtn = document.createElement("button");
+  speedBtn.type = "button";
   speedBtn.innerText = "1x";
   speedBtn.classList.add("wa-speed-btn");
 
@@ -111,13 +140,14 @@ const createAudioPlayer = (src) => {
   return container;
 };
 
-// --- MENSAGENS ---
+// --- CRIAÇÃO DE MENSAGENS CENTRALIZADAS ---
 const createMessageSelfElement = (content, type, filename) => {
   const div = document.createElement("div");
   div.classList.add("message--self");
   
-  if (type === "audio") div.appendChild(createAudioPlayer(content));
-  else if (type === "image") {
+  if (type === "audio") {
+    div.appendChild(createAudioPlayer(content));
+  } else if (type === "image") {
     const img = document.createElement("img");
     img.src = content;
     img.onclick = () => openModal(img.src);
@@ -134,7 +164,11 @@ const createMessageSelfElement = (content, type, filename) => {
     link.innerHTML = `<span class="material-symbols-outlined">description</span> ${filename}`;
     link.classList.add("document-message");
     div.appendChild(link);
-  } else div.innerHTML = content;
+  } else {
+    const txt = document.createElement("span");
+    txt.innerText = content;
+    div.appendChild(txt);
+  }
   
   return div;
 };
@@ -149,19 +183,22 @@ const createMessageOtherElement = (content, sender, senderColor, type, filename,
   const span = document.createElement("span");
   span.classList.add("message--sender");
   span.style.color = senderColor;
-  span.innerHTML = sender;
+  span.innerText = sender;
 
-  const avatarHeader = document.createElement("img");
-  avatarHeader.classList.add("message__avatar");
-  avatarHeader.src = userProfilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-  avatarHeader.onclick = () => openModal(avatarHeader.src);
+  const avatar = document.createElement("img");
+  avatar.classList.add("message__avatar");
+  avatar.src = userProfilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+  
+  // ZOOM NA FOTO DA MENSAGEM RECEBIDA
+  avatar.onclick = () => openModal(avatar.src);
 
   container.appendChild(span);
-  container.appendChild(avatarHeader);
+  container.appendChild(avatar);
   div.appendChild(container);
 
-  if (type === "audio") div.appendChild(createAudioPlayer(content));
-  else if (type === "image") {
+  if (type === "audio") {
+    div.appendChild(createAudioPlayer(content));
+  } else if (type === "image") {
     const img = document.createElement("img");
     img.src = content;
     img.onclick = () => openModal(img.src);
@@ -178,16 +215,30 @@ const createMessageOtherElement = (content, sender, senderColor, type, filename,
     link.innerHTML = `<span class="material-symbols-outlined">description</span> ${filename}`;
     link.classList.add("document-message");
     div.appendChild(link);
-  } else div.innerHTML += content;
+  } else {
+    // Para texto, criamos um elemento próprio para facilitar a centralização pelo CSS
+    const txt = document.createElement("span");
+    txt.innerText = content;
+    div.appendChild(txt);
+  }
 
   return div;
 };
 
+// --- LOGICA DO CHAT ---
 const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
 const scrollScreen = () => (chatMessages.scrollTop = chatMessages.scrollHeight);
 
 const processMessage = ({ data }) => {
-  const { userId, userName, userColor, content, type, filename, userProfilePic } = JSON.parse(data);
+  const parsedData = JSON.parse(data);
+  const { messageId, userId, userName, userColor, content, type, filename, userProfilePic } = parsedData;
+
+  // Evita duplicar mensagens locais
+  if (messageId) {
+    if (processedMessages.has(messageId)) return;
+    processedMessages.add(messageId);
+  }
+
   const message = userId == user.id
       ? createMessageSelfElement(content, type, filename)
       : createMessageOtherElement(content, userName, userColor, type, filename, userProfilePic);
@@ -210,7 +261,9 @@ const handleLogin = (event) => {
 const sendMessage = (event) => {
   event.preventDefault();
   if (chatInput.value.trim() !== "") {
+    const messageId = crypto.randomUUID();
     websocket.send(JSON.stringify({
+        messageId: messageId,
         userId: user.id,
         userName: user.name,
         userColor: user.color,
@@ -222,23 +275,13 @@ const sendMessage = (event) => {
   }
 };
 
-userPhotoInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    user.profilePic = reader.result;
-    userPhotoPreview.src = reader.result;
-  };
-  reader.readAsDataURL(file);
-});
-
 documentInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
     websocket.send(JSON.stringify({
+        messageId: crypto.randomUUID(),
         userId: user.id,
         userName: user.name,
         userColor: user.color,
@@ -247,6 +290,7 @@ documentInput.addEventListener("change", (e) => {
         type: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "document",
         filename: file.name,
     }));
+    e.target.value = ""; 
   };
   reader.readAsDataURL(file);
 });
@@ -264,6 +308,7 @@ micButton.addEventListener("click", async (event) => {
         const reader = new FileReader();
         reader.onload = () => {
           websocket.send(JSON.stringify({
+              messageId: crypto.randomUUID(),
               userId: user.id,
               userName: user.name,
               userColor: user.color,
