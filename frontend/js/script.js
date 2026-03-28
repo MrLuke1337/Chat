@@ -7,10 +7,10 @@ const chatForm = chat.querySelector(".chat__form")
 const chatInput = chat.querySelector(".chat__input")
 const chatMessages = chat.querySelector(".chat__messages")
 
-// Removida a linha do file-input
 const documentInput = document.getElementById("document-input")
 const userPhotoInput = document.getElementById("user-photo-input")
 const userPhotoPreview = document.getElementById("user-photo-preview")
+const micButton = document.getElementById("mic-button")
 
 const imageModal = document.getElementById("image-modal")
 const modalImage = document.getElementById("modal-image")
@@ -27,6 +27,8 @@ const user = {
 }
 
 let websocket
+let mediaRecorder
+let audioChunks = []
 
 const openModal = (src, isVideo = false) => {
     if (isVideo) {
@@ -64,6 +66,12 @@ const createMessageSelfElement = (content, type, filename) => {
         video.style.cursor = "pointer"
         video.onclick = () => openModal(video.src, true)
         div.appendChild(video)
+    } else if (type === "audio") {
+        const audio = document.createElement("audio")
+        audio.src = content
+        audio.controls = true
+        audio.classList.add("audio-message")
+        div.appendChild(audio)
     } else if (type === "document") {
         const link = document.createElement("a")
         link.href = content
@@ -111,6 +119,12 @@ const createMessageOtherElement = (content, sender, senderColor, type, filename,
         video.style.cursor = "pointer"
         video.onclick = () => openModal(video.src, true)
         div.appendChild(video)
+    } else if (type === "audio") {
+        const audio = document.createElement("audio")
+        audio.src = content
+        audio.controls = true
+        audio.classList.add("audio-message")
+        div.appendChild(audio)
     } else if (type === "document") {
         const link = document.createElement("a")
         link.href = content
@@ -131,10 +145,7 @@ const getRandomColor = () => {
 }
 
 const scrollScreen = () => {
-    window.scrollTo({
-        top: document.body.scrollHeight,
-        behavior: "smooth"
-    })
+    chatMessages.scrollTop = chatMessages.scrollHeight
 }
 
 const processMessage = ({ data }) => {
@@ -174,6 +185,57 @@ const sendMessage = (event) => {
         chatInput.value = ""
     }
 }
+
+// LÓGICA DE GRAVAÇÃO DE ÁUDIO
+micButton.addEventListener("click", async (event) => {
+    event.preventDefault() // Evita comportamento padrão do botão no form
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Seu navegador não suporta gravação ou você não está em um ambiente seguro (HTTPS).")
+        return
+    }
+
+    if (!mediaRecorder || mediaRecorder.state === "inactive") {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            mediaRecorder = new MediaRecorder(stream)
+            audioChunks = []
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) audioChunks.push(event.data)
+            }
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
+                const reader = new FileReader()
+                reader.onload = () => {
+                    const message = {
+                        userId: user.id,
+                        userName: user.name,
+                        userColor: user.color,
+                        userProfilePic: user.profilePic,
+                        content: reader.result,
+                        type: "audio"
+                    }
+                    if (websocket && websocket.readyState === WebSocket.OPEN) {
+                        websocket.send(JSON.stringify(message))
+                    }
+                }
+                reader.readAsDataURL(audioBlob)
+                stream.getTracks().forEach(track => track.stop())
+            }
+
+            mediaRecorder.start()
+            micButton.classList.add("recording")
+        } catch (err) {
+            console.error("Erro ao acessar microfone:", err)
+            alert("Não foi possível acessar o microfone.")
+        }
+    } else {
+        mediaRecorder.stop()
+        micButton.classList.remove("recording")
+    }
+})
 
 userPhotoInput.addEventListener("change", (event) => {
     const file = event.target.files[0]
